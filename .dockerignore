@@ -1,0 +1,65 @@
+# Keep the build context small: every file here is excluded from the image and from
+# the context sent to the Docker daemon.
+
+# Version control
+.git
+.gitignore
+.github
+
+# Build output — the image rebuilds these from source
+**/bin
+**/obj
+**/out
+**/publish
+
+# IDE and editor state
+.vs
+.vscode
+.idea
+*.user
+*.suo
+*.userprefs
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Freebuff desktop app metadata — local tooling, not part of the product
+.freebuff
+
+# Secrets and local configuration. Nothing here belongs in a published image.
+**/appsettings.Local.json
+**/*.env
+.env
+**/secrets.json
+
+# Local model weights and OCR data. The model is pulled at runtime into a volume;
+# baking 1.4 GB of weights would bloat every image layer and go stale instantly.
+Models
+models
+**/*.gguf
+**/*.safetensors
+**/*.onnx
+tessdata
+
+# Tests are not part of the runtime image. They stay in the repo and run in CI.
+tests
+
+# NOTE: LocalAiDocSummarizer.sln is deliberately NOT excluded. The Dockerfile copies
+# it so `dotnet restore` can resolve the solution graph; excluding it breaks the build.
+
+# Sample documents and demos
+samples
+docs
+requests.http
+tests/smoke
+
+# Docker files themselves
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation
+README.md
+LICENSE

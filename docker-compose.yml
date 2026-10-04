@@ -1,0 +1,79 @@
+# Local-AI-Doc-Summarizer-API
+#
+# Two services: the API, and Ollama serving the local model. The model weights are
+# pulled on first startup into a named volume, so they are never baked into an image
+# and never leave the host.
+#
+#   docker compose up --build
+#
+# The first run downloads ~1.4 GB of weights and takes a few minutes. Later runs
+# reuse the volume and start immediately.
+
+services:
+  # One-shot init: pulls the model, then exits. Everything else waits for it to
+  # succeed, so the API never starts against a server with no model behind it.
+  ollama-pull:
+    image: ollama/ollama:latest
+    container_name: docsum-model-pull
+    volumes:
+      - ollama-models:/root/.ollama
+    environment:
+      OLLAMA_MODEL: qwen3:1.7b-q4_K_M
+      # Talk to the ollama service by name. Without this the pull would target
+      # localhost inside its own container and never reach the server.
+      OLLAMA_HOST: ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Waiting for the Ollama server..."
+        attempt=0
+        until ollama list >/dev/null 2>&1; do
+          attempt=$$((attempt + 1))
+          if [ $$attempt -ge 60 ]; then
+            echo "Ollama did not become ready after 120s; aborting." >&2
+            exit 1
+          fi
+          sleep 2
+        done
+        echo "Pulling $${OLLAMA_MODEL} (~1.4 GB, first run only)..."
+        ollama pull "$${OLLAMA_MODEL}"
+        echo "Model ready."
+    restart: "no"
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: docsum-ollama
+    volumes:
+      - ollama-models:/root/.ollama
+    environment:
+      # Bind to all interfaces inside the container so the API container can reach
+      # it. It stays on the compose network; this port is not published to the host.
+      OLLAMA_HOST: 0.0.0.0:11434
+      OLLAMA_MODEL: qwen3:1.7b-q4_K_M
+    ports:
+      # Published so `ollama` on the host can talk to the container if needed. Drop
+      # this line to keep the model server entirely private to the compose network.
+      - "11434:11434"
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: local-ai-doc-summarizer-api:latest
+    container_name: docsum-api
+    depends_on:
+      ollama-pull:
+        condition: service_completed_successfully
+    environment:
+      # Inside the compose network the host name is the service name.
+      Summarization__OllamaEndpoint: http://ollama:11434
+      Summarization__Model: qwen3:1.7b-q4_K_M
+      ASPNETCORE_ENVIRONMENT: Production
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+volumes:
+  # Named volume keeps the 1.4 GB of weights across `docker compose down`.
+  ollama-models:
