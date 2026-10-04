@@ -482,3 +482,9 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Freebuff desktop app metadata
+.freebuff/
+
+# Local model weights and OCR data (roadmap: OCR)
+/Models/
