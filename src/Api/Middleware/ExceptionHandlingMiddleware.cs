@@ -70,6 +70,11 @@ public sealed class ExceptionHandlingMiddleware
             UnsupportedDocumentException unsupported =>
                 (StatusCodes.Status422UnprocessableEntity, "Unsupported document", unsupported.Message),
 
+            // Too little input to summarize. 422 like other "we read it but cannot use it"
+            // failures, but a distinct title so it is separable from an unreadable document.
+            InputTooShortException tooShort =>
+                (StatusCodes.Status422UnprocessableEntity, "Input too short", tooShort.Message),
+
             SummarizationException summarization =>
                 (StatusCodes.Status502BadGateway, "Summarization failed", summarization.Message),
 
@@ -130,7 +135,8 @@ public sealed class ExceptionHandlingMiddleware
             title,
             detail,
             status,
-            context.Request.Path);
+            context.Request.Path,
+            (exception as DocumentPipelineException)?.ErrorCode);
 
         await context.Response.WriteAsync(
             JsonSerializer.Serialize(payload, JsonOptions.Default));
@@ -142,7 +148,8 @@ public sealed record ErrorResponse(
     string Title,
     string Detail,
     int Status,
-    string Path);
+    string Path,
+    string? Code = null);
 
 internal static class JsonOptions
 {

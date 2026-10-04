@@ -9,6 +9,13 @@ public abstract class DocumentPipelineException : Exception
         : base(message, inner)
     {
     }
+
+    /// <summary>
+    /// Stable machine-readable identifier for this failure, surfaced in the error
+    /// payload so a client can branch on the code instead of matching on prose.
+    /// Null when the failure has no distinct code of its own.
+    /// </summary>
+    public virtual string? ErrorCode => null;
 }
 
 /// <summary>
@@ -22,6 +29,24 @@ public sealed class UnsupportedDocumentException : DocumentPipelineException
         : base(message, inner)
     {
     }
+}
+
+/// <summary>
+/// The caller sent less text than the configured summarizable floor. Distinct from
+/// <see cref="UnsupportedDocumentException"/>: the input was readable, there was just
+/// not enough of it to summarize, and the model was never called.
+/// </summary>
+public sealed class InputTooShortException : DocumentPipelineException
+{
+    /// <summary>Stable error code reported to clients.</summary>
+    public const string Code = "input_too_short";
+
+    public InputTooShortException(string message, Exception? inner = null)
+        : base(message, inner)
+    {
+    }
+
+    public override string? ErrorCode => Code;
 }
 
 /// <summary>

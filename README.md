@@ -137,6 +137,7 @@ Full walkthrough in [docs/DEMO.md](docs/DEMO.md).
 ## Roadmap
 
 - **OCR for scanned and image-only PDFs** — the single biggest gap. Currently returns an explicit `422` rather than a misleading empty result.
+- **A 200-character input floor** — `POST /api/v1/summarize/text` rejects trimmed input under `MinSummarizableChars` (default `200`) with `422` and error code `input_too_short`, without calling the model, because a one-line input costs a full CPU inference to produce a summary shorter than itself. Set `Summarization:MinSummarizableChars` to `0` to disable.
 - **Larger models** — `qwen3:4b` or larger on hardware that can afford them; the model id is configuration, not code.
 - **Batch endpoint** — submit a directory, receive a manifest.
 - **Key-point extraction** — ranked bullet output alongside prose.
@@ -214,6 +215,7 @@ dotnet run --project src/Api
 ## خارطة الطريق
 
 - **OCR للمستندات الممسوحة ضوئياً** — أكبر فجوة حالياً؛ يُرجع `422` صريحاً بدل نتيجة فارغة مضلّلة.
+- **حدّ أدنى ٢٠٠ حرفاً للمُدخل** — ترفض `POST /api/v1/summarize/text` أي نص أقل من `MinSummarizableChars` (الافتراضي `200`) بالرمز `422` ورمز الخطأ `input_too_short` دون استدعاء الموديل، لأن سطراً واحداً يكلّف استدلالاً كاملاً على المعالج لينتج ملخّصاً أقصر منه. اضبط `Summarization:MinSummarizableChars` على `0` لتعطيله.
 - **نماذج أكبر** — `qwen3:4b` أو ما فوقه على عتاد يتحمّل ذلك.
 - **نقطة دفع مجمّعة** — مجلد كامل يُعالج دفعة واحدة.
 - **استخراج النقاط المهمة** — مخرجات نقطية مرتّبة إلى جانب النص.

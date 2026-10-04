@@ -25,7 +25,8 @@ public sealed class SummarizationOptions
 
     /// <summary>
     /// Context window. Sized to comfortably hold a 2400-token chunk plus the
-    /// system prompt and a generous output allowance.
+    /// system prompt and a generous output allowance. This is the model's context
+    /// window, not the per-chunk budget; see <see cref="ChunkingOptions.MaxTokensPerChunk"/>.
     /// </summary>
     public int NumCtx { get; set; } = 8192;
 
@@ -46,4 +47,12 @@ public sealed class SummarizationOptions
 
     /// <summary>Target length of the final summary, in words.</summary>
     public int MaxSummaryWords { get; set; } = 300;
+
+    /// <summary>
+    /// Input floor, in characters of trimmed text. Inline text shorter than this is
+    /// rejected with 422 <c>input_too_short</c> rather than sent to the model: on a
+    /// CPU-only host a one-line input costs a full inference round trip to produce a
+    /// summary that says less than the input did. Set to 0 to disable the guard.
+    /// </summary>
+    public int MinSummarizableChars { get; set; } = 200;
 }

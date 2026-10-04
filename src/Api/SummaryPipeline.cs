@@ -47,6 +47,7 @@ public sealed class SummaryPipeline
         int? chunkSize,
         CancellationToken cancellationToken)
     {
+        GuardInputFloor(text);
         var document = new TextDocument("(inline text)", text, Array.Empty<int>());
         return await RunAsync(document, Array.Empty<string>(), languageOverride, maxWords, chunkSize, cancellationToken);
     }
@@ -130,6 +131,29 @@ public sealed class SummaryPipeline
             summarizationOptions.Model);
 
         return SummarizeResponse.FromResult(enriched, stopwatch.Elapsed.TotalSeconds);
+    }
+
+    /// <summary>
+    /// Rejects inline text below the configured floor before any model call. The floor
+    /// counts trimmed characters so padding with whitespace cannot buy a pass. Applied
+    /// only to the inline-text entry point: an uploaded document has already been read
+    /// and extracted, and an empty one is caught by the caller's file guard.
+    /// </summary>
+    private void GuardInputFloor(string text)
+    {
+        var minimum = _summarizationOptions.MinSummarizableChars;
+        if (minimum <= 0)
+        {
+            return;
+        }
+
+        var actual = text.Trim().Length;
+        if (actual < minimum)
+        {
+            throw new InputTooShortException(
+                $"Input is {actual:N0} characters after trimming, below the {minimum:N0} " +
+                "character minimum required to summarize.");
+        }
     }
 
     private ChunkingOptions ChunkSizeOverride(int? chunkSize) =>
