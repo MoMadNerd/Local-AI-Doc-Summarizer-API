@@ -26,6 +26,23 @@ public sealed class ExceptionHandlingMiddleware
         _logger = logger;
     }
 
+    /// <summary>
+    /// Recognises the InvalidOperationException that FormFeature raises for a request whose
+    /// Content-Type is not multipart/form-data. The framework words it "Incorrect
+    /// Content-Type: &lt;actual&gt;", and a truncated "multipart/form-data" appears in
+    /// messages about a missing form content type, so both are matched.
+    /// </summary>
+    private static bool IsFormContentTypeFailure(string? message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return false;
+        }
+
+        return message.Contains("Incorrect Content-Type", StringComparison.OrdinalIgnoreCase)
+            || message.Contains("multipart/form-data", StringComparison.OrdinalIgnoreCase);
+    }
+
     public async Task InvokeAsync(HttpContext context)
     {
         try
@@ -63,6 +80,15 @@ public sealed class ExceptionHandlingMiddleware
 
             BadHttpRequestException bad =>
                 (StatusCodes.Status400BadRequest, "Invalid request", bad.Message),
+
+            // ReadFormAsync throws InvalidOperationException when the request is not
+            // multipart/form-data (a missing or wrong Content-Type). That is bad client
+            // input, so it must be a 4xx and never surface as an "Unexpected error" 500.
+            InvalidOperationException { Message: var formMessage }
+                when IsFormContentTypeFailure(formMessage) =>
+                (StatusCodes.Status415UnsupportedMediaType, "Unsupported Media Type",
+                    "Expected multipart/form-data for file upload. Send the document as a " +
+                    "'file' part of a multipart/form-data body."),
 
             ArgumentException argument =>
                 (StatusCodes.Status400BadRequest, "Invalid request", argument.Message),

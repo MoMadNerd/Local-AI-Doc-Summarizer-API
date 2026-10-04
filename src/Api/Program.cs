@@ -74,11 +74,31 @@ summaries.MapPost("/summarize", async (
 {
     var form = await context.Request.ReadFormAsync(cancellationToken);
 
+    // Guard before the pipeline: a missing or empty upload is a malformed request, not an
+    // unsupported document, and must never reach extraction.
     var file = form.Files.FirstOrDefault();
     if (file is null)
     {
-        throw new UnsupportedDocumentException(
-            "No file was uploaded. Send multipart/form-data with a 'file' field.");
+        return Results.Json(
+            new ErrorResponse(
+                "Invalid request",
+                "No file was uploaded. Send multipart/form-data with a 'file' field.",
+                StatusCodes.Status400BadRequest,
+                context.Request.Path),
+            JsonOptions.Default,
+            statusCode: StatusCodes.Status400BadRequest);
+    }
+
+    if (file.Length == 0)
+    {
+        return Results.Json(
+            new ErrorResponse(
+                "Invalid request",
+                $"'{file.FileName}' is empty. Upload a document with content.",
+                StatusCodes.Status400BadRequest,
+                context.Request.Path),
+            JsonOptions.Default,
+            statusCode: StatusCodes.Status400BadRequest);
     }
 
     var maxSize = extractionOptions.Value.MaxFileSizeBytes;
