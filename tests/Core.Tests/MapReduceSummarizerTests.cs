@@ -102,7 +102,7 @@ public class MapReduceSummarizerTests
             new ChunkingOptions { MaxTokensPerChunk = 2400 }, LanguageCode.Unknown);
 
         Assert.Equal(1, result.ChunkCount);
-        Assert.Equal(1, engine.Calls.Count);
+        Assert.Single(engine.Calls);
         Assert.False(string.IsNullOrWhiteSpace(result.Summary));
     }
 

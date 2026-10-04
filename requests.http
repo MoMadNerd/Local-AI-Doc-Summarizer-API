@@ -5,9 +5,13 @@
 ###   ollama pull qwen3:1.7b-q4_K_M
 ###
 ### A 1.7B model on CPU-only hardware is slow. Expect MINUTES, not seconds.
+###
+### SET @samples to the samples folder on YOUR machine before running the
+### file-upload requests below. The default is relative to this file's folder.
+### In Visual Studio / Rider: right-click this file -> "Copy Path as Relative".
 
 @host = http://localhost:5000
-@samples = D:/AI Projs/Local-AI-Doc-Summarizer-API/samples
+@samples = ./samples
 
 ### 1. Health — should be 200 with ollama.reachable = true and modelPresent = true
 ###    Returns 503 when Ollama is down, so an orchestrator can act on the status code.
@@ -16,6 +20,9 @@ Accept: application/json
 
 ### 2. Arabic TXT -> must return an ARABIC summary, not English.
 ###    This is the key check that language detection is wired end to end.
+###    NOTE: from Git Bash, curl mangles UTF-8 in -d and the text arrives corrupted,
+###    so the language detector reports "unknown". For a reliable Arabic round-trip use:
+###      python tests/smoke/post-ar.py http://localhost:5000
 POST {{host}}/api/v1/summarize/text
 Content-Type: application/json
 
